@@ -1,16 +1,15 @@
-use std::num::NonZeroU8;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Square {
-    Blank,
-    Number(NonZeroU8), // 1 -> indeterminate circle, >=2 -> numbered circle
-}
+use nurimisaki_solver::square::Square;
 
 // Up to 64
 struct Board<'sq> {
     init: &'sq [Vec<Square>],
     black: Vec<u64>,
     white: Vec<u64>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct Stat {
+    num_call: u64,
 }
 
 impl<'sq> Board<'sq> {
@@ -173,10 +172,44 @@ impl<'sq> Board<'sq> {
         Ok(())
     }
     fn check_connected(&self) -> Result<(), ()> {
-        // TODO
-        Ok(())
+        let n = self.init.len();
+        let m = self.init[0].len();
+        let mut uf = nurimisaki_solver::uf::UnionFind::new(n * m);
+        for i in 0..n - 1 {
+            let nonblack = !(self.black[i] | self.black[i + 1]);
+            for j in 0..m {
+                if (nonblack & 1 << j) != 0 {
+                    let v = i * m + j;
+                    uf.unite(v, v + m);
+                }
+            }
+        }
+        for i in 0..n {
+            let nonblack = !self.black[i];
+            for j in 0..m - 1 {
+                if (nonblack & 3 << j) == (3 << j) {
+                    let v = i * m + j;
+                    uf.unite(v, v + 1);
+                }
+            }
+        }
+        let mut seen = vec![];
+        for i in 0..n {
+            for j in 0..m {
+                if (self.white[i] & 1 << j) != 0 {
+                    seen.push(uf.root(i * m + j));
+                }
+            }
+        }
+        seen.dedup();
+        if seen.len() >= 2 {
+            Err(())
+        } else {
+            Ok(())
+        }
     }
-    pub fn search(&mut self) -> bool {
+    pub fn search(&mut self, stat: &mut Stat) -> bool {
+        stat.num_call += 1;
         if self.finished() {
             return true;
         }
@@ -197,12 +230,12 @@ impl<'sq> Board<'sq> {
                     continue;
                 }
                 self.white[i] |= 1 << j;
-                if self.search() {
+                if self.search(stat) {
                     return true;
                 }
                 self.white[i] ^= 1 << j;
                 self.black[i] |= 1 << j;
-                if self.search() {
+                if self.search(stat) {
                     return true;
                 }
                 self.black[i] ^= 1 << j;
@@ -245,33 +278,16 @@ impl core::fmt::Display for Board<'_> {
     }
 }
 
-fn parse_board(s: &str) -> Vec<Vec<Square>> {
-    todo!();
-}
-
 fn main() {
     println!("Hello, world!");
-    // https://www.nikoli.co.jp/ja/puzzles/nurimisaki/
-    let mut board = vec![
-        vec![
-            Square::Number(NonZeroU8::new(3).unwrap()),
-            Square::Blank,
-            Square::Number(NonZeroU8::new(1).unwrap()),
-            Square::Blank,
-            Square::Blank,
-        ],
-        vec![Square::Blank; 5],
-        vec![Square::Blank; 5],
-        vec![Square::Blank; 5],
-        vec![Square::Blank; 5],
-    ];
-    for (x, y) in [(1, 3), (2, 0), (4, 4)] {
-        board[x][y] = Square::Number(NonZeroU8::new(4).unwrap());
-    }
+    let board = nurimisaki_solver::examples::example2();
     let mut board = Board::new(&board);
     println!("{}", board);
     println!("{:?}", board.contradicts());
-    let result = board.search();
+    let mut stat = Stat::default();
+    let result = board.search(&mut stat);
     println!("result = {}", result);
     println!("{}", board);
+    // stat = Stat { num_call: 6999113 }
+    println!("stat = {:?}", stat);
 }

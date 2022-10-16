@@ -1,6 +1,7 @@
 use nurimisaki_solver::square::Square;
 
 // Up to 64
+#[derive(Clone)]
 struct Board<'sq> {
     init: &'sq [Vec<Square>],
     black: Vec<u64>,
@@ -221,6 +222,14 @@ impl<'sq> Board<'sq> {
         // very naive search
         // TODO:
         // search from capes
+        let old = self.clone();
+        if let Some(_) = self.fill_determined() {
+            if self.search(stat) {
+                return true;
+            }
+            *self = old;
+            return false;
+        }
         for i in 0..n {
             let white = self.white[i];
             let black = self.black[i];
@@ -243,6 +252,97 @@ impl<'sq> Board<'sq> {
             }
         }
         false
+    }
+
+    fn fill_determined(&mut self) -> Option<()> {
+        let n = self.init.len();
+        let m = self.init[0].len();
+        let mut ret = None;
+        // 2x2
+        for i in 0..n - 1 {
+            for j in 0..m - 1 {
+                let w1 = self.white[i] & 3 << j;
+                let w2 = self.white[i + 1] & 3 << j;
+                let b1 = self.black[i] & 3 << j;
+                let b2 = self.black[i + 1] & 3 << j;
+                if (w1 | b1) == 3 << j && (w2 | b2) == 3 << j {
+                    continue;
+                }
+                if w1.count_ones() + w2.count_ones() == 3 {
+                    self.black[i] |= 3 << j ^ w1;
+                    self.black[i + 1] |= 3 << j ^ w2;
+                    ret = Some(());
+                }
+                if b1.count_ones() + b2.count_ones() == 3 {
+                    self.white[i] |= 3 << j ^ b1;
+                    self.white[i + 1] |= 3 << j ^ b2;
+                    ret = Some(());
+                }
+            }
+        }
+
+        // non-cape capes
+        for i in 0..n {
+            for j in 0..m {
+                if self.init[i][j] != Square::Blank {
+                    continue;
+                }
+                if ((self.white[i] | self.black[i]) & 1 << j) != 0 {
+                    continue;
+                }
+                let mut num_nonblack = 0;
+                if i > 0 {
+                    if (self.black[i - 1] & 1 << j) == 0 {
+                        num_nonblack += 1;
+                    }
+                }
+                if i < n - 1 {
+                    if (self.black[i + 1] & 1 << j) == 0 {
+                        num_nonblack += 1;
+                    }
+                }
+                let mask = 5 << j >> 1;
+                num_nonblack += (!self.black[i] & mask).count_ones();
+                if num_nonblack <= 1 {
+                    // A cape. Filling.
+                    self.black[i] |= 1 << j;
+                    ret = Some(());
+                }
+            }
+        }
+
+        ret
+    }
+
+    // Some(revert_info) -> found a promising move, modified `self`.
+    fn find_next_move(&mut self) -> Option<()> {
+        let n = self.init.len();
+        let m = self.init[0].len();
+        // capes
+        let mut mi = (100, 0, 0);
+        for i in 0..n {
+            for j in 0..m {
+                if self.init[i][j] == Square::Blank {
+                    continue;
+                }
+                let mut num_nonblack = 0;
+                if i > 0 {
+                    if (self.black[i - 1] & 1 << j) == 0 {
+                        num_nonblack += 1;
+                    }
+                }
+                if i < n - 1 {
+                    if (self.black[i + 1] & 1 << j) == 0 {
+                        num_nonblack += 1;
+                    }
+                }
+                let mask = 5 << j >> 1;
+                num_nonblack += (!self.black[i] & mask).count_ones();
+                // TODO
+            }
+        }
+
+        None
     }
 }
 
@@ -288,6 +388,6 @@ fn main() {
     let result = board.search(&mut stat);
     println!("result = {}", result);
     println!("{}", board);
-    // stat = Stat { num_call: 6999113 }
+    // stat = Stat { num_call: 4023773 }
     println!("stat = {:?}", stat);
 }

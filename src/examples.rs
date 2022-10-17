@@ -32,3 +32,14 @@ pub fn example2() -> Vec<Vec<Square>> {
     // https://puzsq.logicpuzzle.app/puzzle/101809
     parse_from_puzz_link("https://puzz.link/p?nurimisaki/10/10/g2t.h.r.j.u6l.t4zg.g6").unwrap()
 }
+
+pub fn example3() -> Vec<Vec<Square>> {
+    // https://puzsq.logicpuzzle.app/puzzle/2346
+    parse_from_puzz_link("https://puzz.link/p?nurimisaki/12/12/i.m.n2n2l.p4g.h4t2x3l2s.k.g.j.u.m")
+        .unwrap()
+}
+
+pub fn example4() -> Vec<Vec<Square>> {
+    // https://puzsq.logicpuzzle.app/puzzle/1167
+    parse_from_puzz_link("https://puzz.link/p?nurimisaki/21/17/h6q4m.m5k.h.h.x.k9u..u5zj..x.h7v8k4w.j3l.g.h.m.h4r6s9k4v9q4x.j6m2j4zg8o4g5l").unwrap()
+}

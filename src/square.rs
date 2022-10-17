@@ -35,12 +35,14 @@ pub fn parse_from_puzz_link(s: &str) -> Option<Vec<Vec<Square>>> {
     if split.len() != 3 {
         return None;
     }
-    let n = split[0].parse::<usize>().ok()?;
-    let m = split[1].parse::<usize>().ok()?;
+    let m = split[0].parse::<usize>().ok()?;
+    let n = split[1].parse::<usize>().ok()?;
     if n * m >= 10_000 || split[2].len() >= 10_000 {
         return None;
     }
     let mut data = vec![];
+    let mut next_2 = false;
+    let mut carry = 0;
     for c in split[2].chars() {
         if c == '.' {
             data.push(Square::new(1));
@@ -52,10 +54,22 @@ pub fn parse_from_puzz_link(s: &str) -> Option<Vec<Vec<Square>>> {
             continue;
         }
         if c == '-' {
-            todo!();
+            next_2 = true;
+            continue;
         }
-        if c >= '2' && c <= '9' {
-            data.push(Square::new(c as u8 - b'0'));
+        if (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') {
+            let dig = if c <= '9' {
+                c as u8 - b'0'
+            } else {
+                c as u8 - b'a' + 10
+            };
+            if next_2 {
+                carry = 16 * dig;
+                next_2 = false;
+            } else {
+                data.push(Square::new(dig + carry));
+                carry = 0;
+            }
             continue;
         }
         return None;

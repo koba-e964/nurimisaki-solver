@@ -94,7 +94,7 @@ impl<'sq> Board<'sq> {
                         num_white += 1;
                     }
                 }
-                let mask = 5 << j >> 1;
+                let mask = 5 << j >> 1 & ((1 << m) - 1);
                 num_nonblack += (!self.black[i] & mask).count_ones();
                 num_white += (self.white[i] & mask).count_ones();
                 if self.init[i][j] != Square::Blank {
@@ -388,6 +388,6 @@ fn main() {
     let result = board.search(&mut stat);
     println!("result = {}", result);
     println!("{}", board);
-    // stat = Stat { num_call: 4023773 }
+    // stat = Stat { num_call: 665987 }
     println!("stat = {:?}", stat);
 }
